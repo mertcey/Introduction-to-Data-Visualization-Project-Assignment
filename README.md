@@ -6,7 +6,7 @@ Bilgisayarda herhangi bir uygulamada seçtiğin metni **`F8`** tuşuyla yerel ya
 
 ## Projenin Amacı
 
-Günlük bilgisayar kullanımında sürekli tekrarlanan metin işlemleri vardır: bir metni düzeltmek, İngilizceye çevirmek, gelen bir e-postaya cevap taslağı hazırlamak, proje görevlerini Gantt şemasına dönüştürmek…
+Günlük bilgisayar kullanımında sürekli tekrarlanan metin işlemleri vardır: bir metni düzeltmek, İngilizceye çevirmek, gelen bir e-postaya cevap taslağı hazırlamak, proje görevlerini Gantt şemasına ve Kritik Yol analizine dönüştürmek…
 
 Bu uygulamayla söz konusu işlemlerin hepsi **iki adımda** tamamlanır:
 
@@ -35,7 +35,7 @@ Uygulama arka planda sessizce çalışır. Tarayıcı açmana, kopyala-yapışt�
 
 ---
 
-## Çalışma Mantığı
+## Genel Çalışma Mantığı
 
 ```mermaid
 flowchart TD
@@ -46,121 +46,191 @@ flowchart TD
     E --> F[İşlem menüsü açılır\ntkinter]
     F --> G{Kullanıcı hangi\nişlemi seçti?}
 
-    G --> H[Metin işlemleri\nGramer / Çeviri / Özetle\nResmi Yap / Python / Mail\n3 Cevap / PS5]
-    G --> I[Görev Metnini\nGantt Formatına Çevir]
-    G --> J[Gantt ve Kritik Yol\nArayüzünü Aç]
+    G --> H[Diğer metin işlemleri\nGramer / Çeviri / Özetle\nResmi Yap / Python / Mail / PS5]
+    G --> I[🧩 Görev Metnini\nGantt Formatına Çevir]
+    G --> J[📊 Gantt ve Kritik Yol\nArayüzünü Aç]
 
     H --> K[Prompt hazırlanır ve\nOllama API ye gönderilir\ngemma3:4b modeli]
     K --> L[Model cevap üretir]
     L --> M[Cevap panoya kopyalanır\nve aktif alana yapıştırılır]
 
-    I --> N[Metin analiz edilir\nGörevler Gantt formatına çevrilir]
+    I --> N[Serbest metin analiz edilir\nGörevler Gantt satırlarına çevrilir]
     N --> K
 
     J --> O[Seçili metin URL parametresi\nolarak encode edilir]
     O --> P[gantt_kritik_yol.html\ntarayıcıda açılır]
-    P --> Q[Görevler otomatik tabloya aktarılır\nKritik Yol hesaplanır\nGantt şeması çizilir]
+    P --> Q[Görevler tabloya aktarılır\nKritik Yol hesaplanır\nGantt şeması çizilir]
 ```
 
 ---
 
-## Gantt ve Kritik Yol Özelliği — Detaylı Akış
+## 🧩 Görev Metnini Gantt Formatına Çevir
 
-Bu özellik iki aşamalı çalışır ve proje yönetimine gerçek bir katma değer sunar.
+Bu özellik, serbest dille yazılmış bir proje açıklamasını yapay zekâ aracılığıyla **yapılandırılmış Gantt satırlarına** dönüştürür. Kullanıcının proje görevlerini tek tek elle yazması gerekmez; doğal Türkçe ile yazılmış herhangi bir metin girdi olarak kullanılabilir.
 
-### Aşama 1 — Metni Gantt Formatına Çevir
+### Nasıl Çalışır?
 
-Serbest yazılmış proje açıklamasını önce yapılandırılmış formata dönüştürmek gerekir.
+```mermaid
+flowchart LR
+    A["Serbest yazılmış\nproje metni seçilir"] --> B["F8 tuşuna basılır"]
+    B --> C["Görev Metnini Gantt\nFormatına Çevir seçilir"]
+    C --> D["Metin Ollama API ye\ngönderilir\ngemma3:4b"]
+    D --> E["Yapay zekâ görevleri,\nsüreleri ve öncülleri\nanaliz eder"]
+    E --> F["Her görev için\nstandart satır üretilir"]
+    F --> G["Sonuç panoya\nkopyalanır ve\nyapıştırılır"]
+```
 
-**Örnek girdi (seçilen metin):**
+### Girdi — Serbest Proje Metni
+
+Kullanıcı, serbest dille yazılmış proje açıklamasını herhangi bir uygulamada seçer ve `F8` tuşuna basar. Menüden **Görev Metnini Gantt Formatına Çevir** seçeneğini seçer.
+
+![Serbest metin seçilmiş, F8 menüsü açık, Görev Metnini Gantt Formatına Çevir seçeneği görünüyor](assets/01-serbest-metin-f8-menu.png)
+
+> Serbest dilde yazılmış proje metni seçilmiş; F8 menüsünden **Görev Metnini Gantt Formatına Çevir** seçilmek üzere.
+
+---
+
+### Çıktı — Yapılandırılmış Gantt Satırları
+
+Yapay zekâ metni analiz eder ve her görevi aşağıdaki standart formata dönüştürür. Sonuç panoya kopyalanır ve aktif alana otomatik yapıştırılır.
+
+**Çıktı formatı:**
 
 ```
-Proje için önce konu belirleme yapılacak, bu iş yaklaşık 1 gün sürer. Konu belli
-olduktan sonra veri seti araştırması yapılmalı ve bu da 2 gün sürer. Veri seti
-bulunduktan sonra veri temizleme aşamasına geçilecek, bu işlem 1 gün sürecek...
+1. Görev adı | Süre: X gün | Öncül: yok
+2. Görev adı | Süre: X gün | Öncül: 1
+3. Görev adı | Süre: X gün | Öncül: 1,2
 ```
 
-Kullanıcı metni seçip `F8` → **Görev Metnini Gantt Formatına Çevir** seçeneğini seçer.
-
-**Üretilen çıktı (panoya yapıştırılır):**
+**Örnek:**
 
 ```
 1. Konu belirleme | Süre: 1 gün | Öncül: yok
 2. Veri seti araştırması | Süre: 2 gün | Öncül: yok
 3. Veri temizleme | Süre: 1 gün | Öncül: yok
-...
+4. Grafik tasarımı | Süre: 2 gün | Öncül: yok
+5. Rapor taslağı hazırlanması | Süre: 1 gün | Öncül: yok
+6. Sonuçların yorumlanması | Süre: 1 gün | Öncül: yok
+7. Sunum hazırlanması | Süre: 2 gün | Öncül: yok
+8. Genel kontrol | Süre: 1 gün | Öncül: yok
 ```
 
-### Aşama 2 — Gantt Arayüzünü Aç
+![Yapılandırılmış görev listesi seçilmiş, F8 menüsü açık, Gantt ve Kritik Yol Arayüzünü Aç seçeneği görünüyor](assets/02-gantt-format-f8-menu.png)
 
-Bu kez yapılandırılmış metni seçip `F8` → **Gantt ve Kritik Yol Arayüzünü Aç** seçeneğini seçer.
+> Görev metnini Gantt Formatına Çevir özelliğinin ürettiği yapılandırılmış çıktı seçilmiş; bir sonraki adımda **Gantt ve Kritik Yol Arayüzünü Aç** seçilmek üzere.
 
-Tarayıcıda `gantt_kritik_yol.html` dosyası açılır ve metin otomatik olarak tabloya aktarılır.
+---
+
+## 📊 Gantt ve Kritik Yol Arayüzünü Aç
+
+Bu özellik, önceki adımda üretilen yapılandırılmış görev listesini alır ve tarayıcıda interaktif bir Gantt + Kritik Yol analiz arayüzü açar. Tüm hesaplamalar otomatik olarak yapılır.
+
+### Nasıl Çalışır?
 
 ```mermaid
-flowchart LR
-    A[Yapılandırılmış\nGörev Metni] --> B[F8 Menüsü]
-    B --> C[Gantt ve Kritik\nYol Arayüzünü Aç]
-    C --> D[HTML arayüzü\ntarayıcıda açılır]
-    D --> E[Görev Tablosu\notomatik dolar]
-    E --> F[Hesapla butonuna basılır]
-    F --> G[Gantt Görünümü\nKırmızı = Kritik\nYeşil = Esnek]
-    F --> H[Kritik Yol Tablosu\nES / EF / LS / LF / Bolluk]
-    F --> I[Şebeke Diyagramı\nDüğümler ve oklar]
-    F --> J[Mermaid Gantt Kodu\nMarkdown için hazır]
+flowchart TD
+    A["Yapılandırılmış görev\nmetni seçilir"] --> B["F8 tuşuna basılır"]
+    B --> C["Gantt ve Kritik Yol\nArayüzünü Aç seçilir"]
+    C --> D["Metin URL parametresi\nolarak encode edilir"]
+    D --> E["gantt_kritik_yol.html\ntarayıcıda açılır"]
+    E --> F["Görevler tabloya\notomatik aktarılır"]
+    F --> G["Kullanıcı Hesapla\nbutonuna basar"]
+    G --> H["Gantt Görünümü\nKırmızı=Kritik / Yeşil=Esnek"]
+    G --> I["Kritik Yol Tablosu\nES · EF · LS · LF · Bolluk"]
+    G --> J["Şebeke Diyagramı\nDüğümler ve bağlantılar"]
+    G --> K["Mermaid Gantt Kodu\nMarkdown için hazır"]
 ```
 
 ---
 
-## Ekran Görüntüleri
+### Adım 1 — Görev Tablosu
 
-### F8 Menüsü
+Arayüz açıldığında görevler otomatik olarak tabloya aktarılır. Görev adları, süreler, birimler ve öncül ilişkileri buradan düzenlenebilir.
 
-Herhangi bir uygulamada metin seçilip `F8` tuşuna basıldığında işlem menüsü açılır. Kullanmak istenen özellik buradan seçilir.
+![Görev girişi tablosu — metin otomatik aktarılmış, Hesapla butonu bekleniyor](assets/03-gorev-giris-tablosu.png)
 
-> **Görsel 1:** Yapılandırılmış görev listesi seçilmiş, F8 menüsü açık — "Gantt ve Kritik Yol Arayüzünü Aç" seçeneği görünüyor.
-
-> **Görsel 2:** Serbest yazılmış proje metni seçilmiş, F8 menüsü açık — "Görev Metnini Gantt Formatına Çevir" seçeneği görünüyor.
+> Görev girişi tablosu: Yapılandırılmış metin otomatik olarak satırlara ayrılmış, her görevin süresi ve öncülü düzenlenebilir durumda.
 
 ---
 
-### Gantt Arayüzü — Görev Girişi
+### Adım 2 — Gantt Görünümü ve Proje Özeti
 
-Metin otomatik olarak tabloya aktarılır. Görevler, süreleri ve öncül ilişkileri düzenlenebilir durumdadır.
+**Hesapla** butonuna basıldığında Gantt şeması çizilir. Üstte toplam proje süresi, kritik yol dizisi ve kritik görev sayısı özetlenir.
 
-> **Görsel 3:** Görev girişi ekranı — Metin tabloya aktarılmış, "Hesapla" butonu bekleniyor.
+- **Kırmızı çubuklar** → Kritik yol üzerindeki görevler. Gecikmesi projenin teslim tarihini geciktirir.
+- **Yeşil çubuklar** → Zaman esnekliği olan görevler. Belirli bir süre gecikse bile projeyi etkilemez.
 
----
+![Proje özeti ve Gantt görünümü — kırmızı kritik, yeşil esnek görevler](assets/04-gantt-gorunumu-proje-ozeti.png)
 
-### Gantt Görünümü ve Proje Özeti
-
-Hesaplama tamamlandığında Gantt şeması çizilir. Kırmızı görevler kritik yoldadır (gecikmesi projeyi geciktirir), yeşil görevlerde zaman esnekliği vardır.
-
-> **Görsel 4:** Proje Özeti (toplam süre, kritik yol, kritik görev sayısı) ve Gantt Görünümü.
+> Proje Özeti: Toplam süre, kritik yol (1→2→4→5→7→8) ve kritik görev sayısı. Altında renkli Gantt şeması.
 
 ---
 
-### Kritik Yol Tablosu
+### Adım 3 — Kritik Yol Tablosu
 
-Her görev için En Erken Başlama, En Erken Bitiş, En Geç Başlama, En Geç Bitiş ve Bolluk değerleri hesaplanır.
+Her görev için CPM (Critical Path Method) hesaplaması yapılır ve sonuçlar tablo olarak sunulur.
 
-> **Görsel 5:** Kritik Yol Tablosu — Kırmızı satırlar kritik, yeşil satırlar esnek görevlerdir.
+| Sütun | Açıklama |
+|---|---|
+| **ES** (En Erken Başlama) | Görevin en erken başlayabileceği gün |
+| **EF** (En Erken Bitiş) | Görevin en erken bitebileceği gün |
+| **LS** (En Geç Başlama) | Projeyi geciktirmeden en geç başlanabilecek gün |
+| **LF** (En Geç Bitiş) | Projeyi geciktirmeden en geç bitirilebilecek gün |
+| **Bolluk** | Görevin ne kadar gecikebileceği (0 = Kritik) |
+
+![Kritik Yol Tablosu — her görev için ES, EF, LS, LF, Bolluk ve Durum sütunları](assets/05-kritik-yol-tablosu.png)
+
+> Kritik Yol Tablosu: Bolluk değeri 0 olan görevler **Kritik**, 0'dan büyük olanlar **Esnek** olarak işaretlenir.
 
 ---
 
-### Şebeke Diyagramı
+### Adım 4 — Şebeke Diyagramı
 
-Görevler arasındaki bağımlılıklar görsel olarak şebeke diyagramında gösterilir. Kırmızı düğümler ve oklar kritik yolu işaret eder.
+Görevler arasındaki bağımlılık ilişkileri görsel olarak şebeke diyagramında gösterilir. Kırmızı düğümler ve oklar kritik yolu; gri düğümler kritik olmayan görevleri temsil eder.
 
-> **Görsel 6:** Kritik Yol Şebeke Diyagramı.
+Her düğümde şu bilgiler bulunur:
+- Görev numarası ve adı
+- **ES** (En Erken Başlama)
+- **B** (Bolluk)
+
+![Kritik Yol Şebeke Diyagramı — kırmızı düğümler kritik yolu gösteriyor](assets/06-sebeke-diyagrami.png)
+
+> Şebeke Diyagramı: Kırmızı oklar ve düğümler kritik yolu (1→2→4→5→7→8) göstermektedir. Gri düğümler esnek görevlerdir.
 
 ---
 
-### Mermaid Gantt Kodu
+### Adım 5 — Mermaid Gantt Kodu
 
-Üretilen Gantt şeması, README veya Mermaid destekleyen herhangi bir editöre yapıştırılabilir formatta da sunulur.
+Arayüz, hesaplanan Gantt şemasını aynı zamanda **Mermaid formatında** da üretir. Bu kod GitHub README dosyasına, Notion'a veya Mermaid destekleyen herhangi bir editöre yapıştırıldığında otomatik olarak diyagram hâlinde görüntülenir.
 
-> **Görsel 7:** Otomatik üretilmiş Mermaid Gantt kodu.
+![Mermaid Gantt kodu çıktısı — README veya editöre yapıştırılmaya hazır](assets/07-mermaid-gantt-kodu.png)
+
+> Otomatik üretilmiş Mermaid Gantt kodu: Kritik görevler `:crit` etiketiyle işaretlenmiş, tarihler ve süreler hesaplanmış.
+
+---
+
+## Tam Kullanım Akışı — Serbest Metinden Gantt'a
+
+Aşağıdaki diyagram her iki özelliğin birlikte nasıl kullanıldığını göstermektedir:
+
+```mermaid
+flowchart TD
+    A["📝 Serbest yazılmış\nproje metni"] --> B["Metni seç\nF8 tuşuna bas"]
+    B --> C["🧩 Görev Metnini Gantt\nFormatına Çevir"]
+    C --> D["Yapay zekâ metni analiz eder\nOllama gemma3:4b"]
+    D --> E["Yapılandırılmış görev\nlistesi üretilir ve\npanoya yapıştırılır"]
+
+    E --> F["Üretilen listeyi seç\nF8 tuşuna bas"]
+    F --> G["📊 Gantt ve Kritik Yol\nArayüzünü Aç"]
+    G --> H["gantt_kritik_yol.html\ntarayıcıda açılır"]
+    H --> I["Görevler tabloya\notomatik aktarılır"]
+    I --> J["Hesapla butonuna bas"]
+
+    J --> K["📊 Gantt Görünümü\nKırmızı=Kritik / Yeşil=Esnek"]
+    J --> L["📋 Kritik Yol Tablosu\nES · EF · LS · LF · Bolluk"]
+    J --> M["🔗 Şebeke Diyagramı\nDüğümler ve bağlantılar"]
+    J --> N["📄 Mermaid Gantt Kodu\nMarkdown'a yapıştır"]
+```
 
 ---
 
@@ -206,7 +276,7 @@ Kurulumu kontrol et:
 
 ```bash
 ollama list
-# gemma3:4b görünmeli
+# Listede gemma3:4b görünmeli
 ```
 
 ### 2. Projeyi Çalıştır
@@ -228,24 +298,6 @@ python main.pyw
 
 ---
 
-## Kullanım — Adım Adım
-
-```mermaid
-flowchart LR
-    A[Uygulamayı Başlat\nBAŞLAT.bat] --> B[Herhangi bir\nuygulamada metni seç]
-    B --> C[F8 tuşuna bas]
-    C --> D[Menüden işlem seç]
-    D --> E[Sonuç otomatik\nyapıştırılır]
-```
-
-1. `BASLAT.bat` dosyasını çalıştır — program arka planda başlar.
-2. WhatsApp Web, Notepad, e-posta, tarayıcı — fark etmez, istediğin uygulamada bir metni seç.
-3. `F8` tuşuna bas.
-4. Açılan menüden istediğin işlemi seç.
-5. İşlem tamamlandığında sonuç bulunduğun alana otomatik yapıştırılır.
-
----
-
 ## Proje Yapısı
 
 ```
@@ -255,6 +307,14 @@ flowchart LR
 ├── requirements.txt          # Python bağımlılıkları
 ├── BASLAT.bat                # Windows hızlı başlatma + kurulum
 ├── kurulum.bat               # Yalnızca kurulum
+├── assets/                   # README görselleri
+│   ├── 01-serbest-metin-f8-menu.png
+│   ├── 02-gantt-format-f8-menu.png
+│   ├── 03-gorev-giris-tablosu.png
+│   ├── 04-gantt-gorunumu-proje-ozeti.png
+│   ├── 05-kritik-yol-tablosu.png
+│   ├── 06-sebeke-diyagrami.png
+│   └── 07-mermaid-gantt-kodu.png
 ├── .gitignore
 └── README.md
 ```
@@ -268,6 +328,7 @@ flowchart LR
 - **tkinter** — İşlem menüsü (GUI)
 - **pynput / pyautogui / pyperclip** — Klavye ve pano otomasyonu
 - **HTML / JavaScript** — Gantt ve Kritik Yol arayüzü (tarayıcı tabanlı)
+- **CPM (Critical Path Method)** — Kritik yol hesaplama algoritması
 
 ---
 
@@ -280,10 +341,13 @@ Programın çalıştığından emin ol. Bazı bilgisayarlarda `Fn + F8` kombinas
 Metni gerçekten seçtiğinden ve seçim aktifken F8'e bastığından emin ol.
 
 **Ollama bağlantı hatası:**
-`ollama list` komutunu çalıştır. Model listede görünmüyorsa `ollama pull gemma3:4b` ile yeniden indir. Ollama bir internet bağlantısı gerektirmez; model indirildikten sonra tamamen yerel çalışır.
+`ollama list` komutunu çalıştır. Model listede görünmüyorsa `ollama pull gemma3:4b` ile yeniden indir. Ollama model indirildikten sonra tamamen yerel çalışır, internet bağlantısı gerekmez.
 
 **Gantt arayüzü açılmıyor:**
 `gantt_kritik_yol.html` dosyasının `main.pyw` ile aynı klasörde olduğundan emin ol.
+
+**Görevler tabloya aktarılmıyor:**
+Seçili metnin `Görev Metnini Gantt Formatına Çevir` özelliğiyle üretildiğinden emin ol. Beklenen format: `1. Görev adı | Süre: X gün | Öncül: yok`
 
 ---
 
