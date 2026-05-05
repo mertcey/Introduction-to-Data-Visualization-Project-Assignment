@@ -1,0 +1,1109 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gantt ve Kritik Yol Hesaplayıcı</title>
+  <style>
+    :root {
+      --bg: #f7f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --critical: #dc2626;
+      --critical-soft: #fee2e2;
+      --normal: #16a34a;
+      --normal-soft: #dcfce7;
+      --soft: #f3f4f6;
+      --warning: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 24px;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    header p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    main {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+    }
+
+    .card h2 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 14px;
+      margin: 6px 0 10px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 700;
+      background: var(--accent);
+      color: white;
+    }
+
+    button:hover {
+      background: var(--accent-dark);
+    }
+
+    button.secondary {
+      background: #4b5563;
+    }
+
+    button.secondary:hover {
+      background: #374151;
+    }
+
+    button.danger {
+      background: var(--critical);
+    }
+
+    button.danger:hover {
+      background: #b91c1c;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 155px;
+      resize: vertical;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: Consolas, "Courier New", monospace;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--border);
+      padding: 10px;
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      background: var(--soft);
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 9px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    .status {
+      padding: 12px;
+      border-radius: 10px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e3a8a;
+      margin-top: 12px;
+    }
+
+    .error {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #991b1b;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+
+    .metric {
+      background: var(--soft);
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 22px;
+      margin-top: 6px;
+    }
+
+    .critical-text {
+      color: var(--critical);
+      font-weight: 700;
+    }
+
+    .normal-text {
+      color: var(--normal);
+      font-weight: 700;
+    }
+
+    .gantt-wrapper,
+    .network-wrapper {
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+
+    .gantt {
+      min-width: 920px;
+    }
+
+    .gantt-scale {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .scale-line {
+      position: relative;
+      height: 24px;
+      background: #f9fafb;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .scale-marker {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      border-left: 1px dashed #cbd5e1;
+      font-size: 11px;
+      padding-left: 4px;
+    }
+
+    .gantt-row {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .gantt-label {
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .gantt-line {
+      position: relative;
+      height: 34px;
+      background: #f9fafb;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .bar {
+      position: absolute;
+      top: 5px;
+      height: 22px;
+      border-radius: 999px;
+      color: white;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      min-width: 28px;
+      padding: 0 8px;
+    }
+
+    .bar.normal {
+      background: var(--normal);
+    }
+
+    .bar.critical {
+      background: var(--critical);
+    }
+
+    .network-svg {
+      min-width: 1000px;
+      width: 100%;
+      height: 460px;
+      background: #f9fafb;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    .network-edge {
+      stroke: #9ca3af;
+      stroke-width: 2;
+      marker-end: url(#arrowNormal);
+    }
+
+    .network-edge.critical {
+      stroke: var(--critical);
+      stroke-width: 4;
+      marker-end: url(#arrowCritical);
+    }
+
+    .network-node {
+      fill: #ffffff;
+      stroke: #6b7280;
+      stroke-width: 2;
+    }
+
+    .network-node.critical {
+      fill: #fff7f7;
+      stroke: var(--critical);
+      stroke-width: 4;
+    }
+
+    .network-title {
+      font-weight: 700;
+      font-size: 13px;
+      fill: var(--text);
+    }
+
+    .network-detail {
+      font-size: 11px;
+      fill: var(--muted);
+    }
+
+    pre {
+      background: #111827;
+      color: #f9fafb;
+      padding: 14px;
+      border-radius: 12px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+
+    .example {
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 12px;
+      margin-top: 10px;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 13px;
+      color: #334155;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Gantt Şeması ve Kritik Yol Hesaplayıcı</h1>
+    <p>Görev metnini tabloya dönüştürür, Gantt görünümü oluşturur ve kritik yolu algoritmik olarak hesaplar.</p>
+  </header>
+
+  <main>
+    <section class="card" id="inputCard">
+      <h2>Görev Girişi</h2>
+      <p class="hint">
+        Notepad veya başka bir uygulamada görev metnini seçip F8 menüsünden bu arayüzü açarsan metin otomatik gelir,
+        tablo otomatik dolar ve hesaplama otomatik başlar.
+      </p>
+
+      <textarea id="bulkTaskText" placeholder="Görevleri buraya yapıştır. Örnek:
+1. İhtiyaç analizi | Süre: 2 gün | Öncül: yok
+2. Veri toplama | Süre: 3 gün | Öncül: 1
+3. Tasarım şablonu hazırlama | Süre: 2 gün | Öncül: 1
+4. Veri temizleme | Süre: 2 gün | Öncül: 2
+5. Grafik geliştirme | Süre: 3 gün | Öncül: 3,4
+6. Rapor taslağı hazırlama | Süre: 2 gün | Öncül: 4
+7. Sunum hazırlama | Süre: 2 gün | Öncül: 5,6
+8. Son kontrol | Süre: 1 gün | Öncül: 7"></textarea>
+
+      <div class="toolbar">
+        <button onclick="parseBulkText()">Metni Tabloya Aktar</button>
+        <button onclick="calculateProject()">Hesapla</button>
+        <button onclick="addTask()">Boş Görev Ekle</button>
+        <button class="secondary" onclick="loadSample()">Örnek Veriyi Yükle</button>
+        <button class="danger" onclick="clearTasks()">Temizle</button>
+      </div>
+
+      <p class="hint">
+        Desteklenen formatlar:
+      </p>
+      <div class="example">1. Görev adı | Süre: 2 gün | Öncül: yok
+2. Veri toplama | Süre: 3 saat | Öncül: 1
+3 | Grafik geliştirme | 2 gün | 1,2</div>
+
+      <div class="table-scroll" style="margin-top: 14px;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 80px;">No</th>
+              <th>Görev Adı</th>
+              <th style="width: 110px;">Süre</th>
+              <th style="width: 120px;">Birim</th>
+              <th style="width: 180px;">Öncül</th>
+              <th style="width: 90px;">Sil</th>
+            </tr>
+          </thead>
+          <tbody id="taskRows"></tbody>
+        </table>
+      </div>
+
+      <div id="message" class="status" style="display:none;"></div>
+    </section>
+
+    <section class="card" id="summaryCard" style="display:none;">
+      <h2>Proje Özeti</h2>
+      <div class="grid">
+        <div class="metric">Toplam Proje Süresi<strong id="projectDuration">-</strong></div>
+        <div class="metric">Kritik Yol<strong id="criticalPath">-</strong></div>
+        <div class="metric">Kritik Görev Sayısı<strong id="criticalCount">-</strong></div>
+      </div>
+    </section>
+
+    <section class="card" id="ganttCard" style="display:none;">
+      <h2>Gantt Görünümü</h2>
+      <p class="hint">Kırmızı görevler kritik yoldadır. Yeşil görevlerde zaman esnekliği vardır.</p>
+      <div class="gantt-wrapper">
+        <div class="gantt" id="ganttChart"></div>
+      </div>
+    </section>
+
+    <section class="card" id="tableCard" style="display:none;">
+      <h2>Kritik Yol Tablosu</h2>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Görev</th>
+              <th>Süre</th>
+              <th>Öncül</th>
+              <th>En Erken Başlama</th>
+              <th>En Erken Bitiş</th>
+              <th>En Geç Başlama</th>
+              <th>En Geç Bitiş</th>
+              <th>Bolluk</th>
+              <th>Durum</th>
+            </tr>
+          </thead>
+          <tbody id="resultRows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" id="criticalCard" style="display:none;">
+      <h2>Öncelikle Yapılacak Kritik Görevler</h2>
+      <ol id="criticalTasks"></ol>
+    </section>
+
+    <section class="card" id="networkCard" style="display:none;">
+      <h2>Kritik Yol Şebeke Diyagramı</h2>
+      <p class="hint">Kırmızı düğümler ve oklar kritik yolu gösterir. Gri düğümler kritik olmayan görevlerdir.</p>
+      <div class="network-wrapper">
+        <svg id="networkDiagram" class="network-svg" viewBox="0 0 1150 460" role="img" aria-label="Kritik yol şebeke diyagramı"></svg>
+      </div>
+    </section>
+
+    <section class="card" id="mermaidCard" style="display:none;">
+      <h2>Mermaid Gantt Kodu</h2>
+      <p class="hint">Bu kodu README veya Mermaid destekleyen bir editöre yapıştırarak diyagram olarak gösterebilirsin.</p>
+      <pre id="mermaidCode"></pre>
+    </section>
+  </main>
+
+  <script>
+    const taskRows = document.getElementById("taskRows");
+    const messageBox = document.getElementById("message");
+
+    function showMessage(text, isError = false) {
+      messageBox.textContent = text;
+      messageBox.className = isError ? "status error" : "status";
+      messageBox.style.display = "block";
+    }
+
+    function hideMessage() {
+      messageBox.style.display = "none";
+    }
+
+    function addTask(task = {}) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><input class="task-id" value="${escapeHtml(task.id || "")}" placeholder="1" /></td>
+        <td><input class="task-name" value="${escapeHtml(task.name || "")}" placeholder="Görev adı" /></td>
+        <td><input class="task-duration" type="number" min="0" step="0.25" value="${task.duration || ""}" placeholder="2" /></td>
+        <td>
+          <select class="task-unit">
+            <option value="minute" ${task.unit === "minute" ? "selected" : ""}>Dakika</option>
+            <option value="hour" ${task.unit === "hour" ? "selected" : ""}>Saat</option>
+            <option value="day" ${!task.unit || task.unit === "day" ? "selected" : ""}>Gün</option>
+          </select>
+        </td>
+        <td><input class="task-preds" value="${escapeHtml(task.predecessors || "")}" placeholder="1,2" /></td>
+        <td><button class="danger" onclick="this.closest('tr').remove()">Sil</button></td>
+      `;
+      taskRows.appendChild(tr);
+    }
+
+    function clearTasks() {
+      taskRows.innerHTML = "";
+      document.getElementById("bulkTaskText").value = "";
+      hideResults();
+      showMessage("Görev listesi temizlendi.");
+    }
+
+    function loadSample() {
+      const sample = `1. İhtiyaç analizi | Süre: 2 gün | Öncül: yok
+2. Veri toplama | Süre: 3 gün | Öncül: 1
+3. Tasarım şablonu hazırlama | Süre: 2 gün | Öncül: 1
+4. Veri temizleme | Süre: 2 gün | Öncül: 2
+5. Grafik geliştirme | Süre: 3 gün | Öncül: 3,4
+6. Rapor taslağı hazırlama | Süre: 2 gün | Öncül: 4
+7. Sunum hazırlama | Süre: 2 gün | Öncül: 5,6
+8. Son kontrol | Süre: 1 gün | Öncül: 7`;
+      document.getElementById("bulkTaskText").value = sample;
+      parseBulkText();
+      calculateProject();
+      showMessage("Örnek veri yüklendi ve hesaplandı.");
+    }
+
+    function hideResults() {
+      ["summaryCard", "ganttCard", "tableCard", "criticalCard", "networkCard", "mermaidCard"].forEach(id => {
+        document.getElementById(id).style.display = "none";
+      });
+    }
+
+    function parseBulkText() {
+      const text = document.getElementById("bulkTaskText").value.trim();
+
+      if (!text) {
+        showMessage("Önce görev metnini kutuya yapıştırmalısın.", true);
+        return false;
+      }
+
+      const lines = text.split(/\n+/).map(line => line.trim()).filter(Boolean);
+      const parsedTasks = [];
+
+      for (const line of lines) {
+        const task = parseTaskLine(line, parsedTasks.length + 1);
+        if (!task) {
+          showMessage("Bu satır okunamadı: " + line, true);
+          return false;
+        }
+        parsedTasks.push(task);
+      }
+
+      taskRows.innerHTML = "";
+      parsedTasks.forEach(addTask);
+      hideResults();
+      showMessage("Metindeki görevler tabloya aktarıldı. Hesaplama yapılabilir.");
+      return true;
+    }
+
+    function parseTaskLine(line, fallbackId) {
+      const cleanedLine = line.trim();
+      if (!cleanedLine) return null;
+
+      // Format A:
+      // 1. Görev adı | Süre: 2 gün | Öncül: yok
+      const structuredMatch = cleanedLine.match(/^(\d+)\s*[\.)-]?\s*(.*?)\s*\|\s*Süre\s*:\s*([\d.,]+)\s*(gün|gun|saat|dakika|dk)\s*\|\s*Öncül\s*:\s*(.*)$/i);
+      if (structuredMatch) {
+        return {
+          id: structuredMatch[1],
+          name: structuredMatch[2].trim(),
+          duration: Number(structuredMatch[3].replace(",", ".")),
+          unit: normalizeUnit(structuredMatch[4]),
+          predecessors: normalizePredecessors(structuredMatch[5])
+        };
+      }
+
+      // Format B:
+      // 1 | Görev adı | 2 gün | 1,2
+      // 1 | Görev adı | 2 | -
+      const parts = cleanedLine.split("|").map(part => part.trim());
+      if (parts.length >= 3) {
+        let id = String(fallbackId);
+        let name = "";
+        let durationText = "";
+        let predText = "";
+
+        if (/^\d+$/.test(parts[0])) {
+          id = parts[0];
+          name = parts[1];
+          durationText = parts[2];
+          predText = parts.slice(3).join(",");
+        } else {
+          const idName = parts[0].match(/^(\d+)\s*[\.)-]?\s*(.*)$/);
+          if (idName) {
+            id = idName[1];
+            name = idName[2].trim();
+          } else {
+            name = parts[0];
+          }
+          durationText = parts[1];
+          predText = parts.slice(2).join(",");
+        }
+
+        const durationMatch = durationText.match(/([\d.,]+)\s*(gün|gun|saat|dakika|dk)?/i);
+        if (!durationMatch || !name) return null;
+
+        return {
+          id,
+          name,
+          duration: Number(durationMatch[1].replace(",", ".")),
+          unit: normalizeUnit(durationMatch[2] || "gün"),
+          predecessors: normalizePredecessors(predText)
+        };
+      }
+
+      // Format C:
+      // 1. Görev adı Süre: 2 gün Öncül: 1
+      const looseMatch = cleanedLine.match(/^(\d+)\s*[\.)-]?\s*(.*?)\s*Süre\s*:\s*([\d.,]+)\s*(gün|gun|saat|dakika|dk)\s*Öncül\s*:\s*(.*)$/i);
+      if (looseMatch) {
+        return {
+          id: looseMatch[1],
+          name: looseMatch[2].trim(),
+          duration: Number(looseMatch[3].replace(",", ".")),
+          unit: normalizeUnit(looseMatch[4]),
+          predecessors: normalizePredecessors(looseMatch[5])
+        };
+      }
+
+      return null;
+    }
+
+    function normalizeUnit(unitText) {
+      const text = (unitText || "gün").toLowerCase();
+      if (text.includes("saat")) return "hour";
+      if (text.includes("dakika") || text.includes("dk")) return "minute";
+      return "day";
+    }
+
+    function normalizePredecessors(predText) {
+      const text = (predText || "").trim();
+      if (!text || /^(yok|none|boş|bos|-|—)$/i.test(text)) return "";
+      const ids = text.match(/\d+/g);
+      return ids ? ids.join(",") : "";
+    }
+
+    function unitToMinutes(duration, unit) {
+      if (unit === "minute") return duration;
+      if (unit === "hour") return duration * 60;
+      return duration * 60 * 24;
+    }
+
+    function formatTime(minutes) {
+      if (Math.abs(minutes) < 0.0001) return "0";
+
+      const sign = minutes < 0 ? "-" : "";
+      minutes = Math.abs(minutes);
+
+      const days = Math.floor(minutes / 1440);
+      const hours = Math.floor((minutes % 1440) / 60);
+      const mins = Math.round(minutes % 60);
+      const parts = [];
+
+      if (days) parts.push(`${days} gün`);
+      if (hours) parts.push(`${hours} saat`);
+      if (mins) parts.push(`${mins} dk`);
+
+      return sign + parts.join(" ");
+    }
+
+    function readTasks() {
+      const rows = [...taskRows.querySelectorAll("tr")];
+
+      const tasks = rows.map(row => {
+        const id = row.querySelector(".task-id").value.trim();
+        const name = row.querySelector(".task-name").value.trim();
+        const duration = Number(row.querySelector(".task-duration").value);
+        const unit = row.querySelector(".task-unit").value;
+
+        const predecessors = row.querySelector(".task-preds").value
+          .split(",")
+          .map(x => x.trim())
+          .filter(Boolean);
+
+        return {
+          id,
+          name,
+          duration,
+          unit,
+          durationMinutes: unitToMinutes(duration, unit),
+          predecessors,
+          successors: [],
+          es: 0,
+          ef: 0,
+          ls: 0,
+          lf: 0,
+          slack: 0
+        };
+      });
+
+      validateTasks(tasks);
+      return tasks;
+    }
+
+    function validateTasks(tasks) {
+      if (!tasks.length) throw new Error("En az bir görev eklemelisin.");
+
+      const ids = new Set();
+
+      for (const task of tasks) {
+        if (!task.id) throw new Error("Her görevin sıra numarası olmalı.");
+        if (ids.has(task.id)) throw new Error(`Tekrarlanan görev numarası var: ${task.id}`);
+        ids.add(task.id);
+
+        if (!task.name) throw new Error(`${task.id} numaralı görevin adı boş olamaz.`);
+        if (!Number.isFinite(task.duration) || task.duration <= 0) {
+          throw new Error(`${task.id} numaralı görevin süresi 0'dan büyük olmalı.`);
+        }
+      }
+
+      for (const task of tasks) {
+        for (const pred of task.predecessors) {
+          if (!ids.has(pred)) {
+            throw new Error(`${task.id} numaralı görevde bilinmeyen öncül var: ${pred}`);
+          }
+
+          if (pred === task.id) {
+            throw new Error(`${task.id} numaralı görev kendisine öncül olamaz.`);
+          }
+        }
+      }
+    }
+
+    function topologicalSort(tasks) {
+      const map = new Map(tasks.map(task => [task.id, task]));
+
+      tasks.forEach(task => {
+        task.successors = [];
+      });
+
+      tasks.forEach(task => {
+        task.predecessors.forEach(predId => {
+          map.get(predId).successors.push(task.id);
+        });
+      });
+
+      const inDegree = new Map(tasks.map(task => [task.id, task.predecessors.length]));
+      const queue = tasks
+        .filter(task => task.predecessors.length === 0)
+        .map(task => task.id)
+        .sort(compareTaskIds);
+
+      const sorted = [];
+
+      while (queue.length) {
+        const id = queue.shift();
+        sorted.push(map.get(id));
+
+        const successors = [...map.get(id).successors].sort(compareTaskIds);
+        for (const successorId of successors) {
+          inDegree.set(successorId, inDegree.get(successorId) - 1);
+
+          if (inDegree.get(successorId) === 0) {
+            queue.push(successorId);
+            queue.sort(compareTaskIds);
+          }
+        }
+      }
+
+      if (sorted.length !== tasks.length) {
+        throw new Error("Görevlerde döngüsel bağımlılık var. Öncül ilişkilerini kontrol et.");
+      }
+
+      return sorted;
+    }
+
+    function calculateProject() {
+      try {
+        hideMessage();
+
+        const tasks = readTasks();
+        const map = new Map(tasks.map(task => [task.id, task]));
+        const sorted = topologicalSort(tasks);
+
+        for (const task of sorted) {
+          task.es = task.predecessors.length
+            ? Math.max(...task.predecessors.map(predId => map.get(predId).ef))
+            : 0;
+
+          task.ef = task.es + task.durationMinutes;
+        }
+
+        const projectDuration = Math.max(...tasks.map(task => task.ef));
+
+        for (const task of tasks) {
+          task.lf = projectDuration;
+          task.ls = projectDuration - task.durationMinutes;
+        }
+
+        for (const task of [...sorted].reverse()) {
+          task.lf = task.successors.length
+            ? Math.min(...task.successors.map(successorId => map.get(successorId).ls))
+            : projectDuration;
+
+          task.ls = task.lf - task.durationMinutes;
+          task.slack = task.ls - task.es;
+        }
+
+        const criticalTasks = sorted.filter(task => Math.abs(task.slack) < 0.0001);
+
+        renderSummary(projectDuration, criticalTasks);
+        renderGantt(sorted, projectDuration);
+        renderTable(sorted);
+        renderCriticalTasks(criticalTasks);
+        renderNetwork(sorted, criticalTasks);
+        renderMermaid(sorted, criticalTasks);
+
+        showMessage("Hesaplama başarıyla tamamlandı.");
+      } catch (error) {
+        hideResults();
+        showMessage(error.message, true);
+      }
+    }
+
+    function renderSummary(projectDuration, criticalTasks) {
+      document.getElementById("summaryCard").style.display = "block";
+      document.getElementById("projectDuration").textContent = formatTime(projectDuration);
+      document.getElementById("criticalPath").textContent = criticalTasks.map(task => task.id).join(" → ");
+      document.getElementById("criticalCount").textContent = criticalTasks.length;
+    }
+
+    function renderGantt(tasks, projectDuration) {
+      document.getElementById("ganttCard").style.display = "block";
+
+      const gantt = document.getElementById("ganttChart");
+      gantt.innerHTML = "";
+
+      const scale = document.createElement("div");
+      scale.className = "gantt-scale";
+      scale.innerHTML = `<div></div><div class="scale-line" id="scaleLine"></div>`;
+      gantt.appendChild(scale);
+
+      const scaleLine = scale.querySelector("#scaleLine");
+      const markerCount = 5;
+
+      for (let i = 0; i <= markerCount; i++) {
+        const percent = (i / markerCount) * 100;
+        const marker = document.createElement("div");
+        marker.className = "scale-marker";
+        marker.style.left = `${percent}%`;
+        marker.textContent = formatTime((projectDuration * i) / markerCount);
+        scaleLine.appendChild(marker);
+      }
+
+      for (const task of tasks) {
+        const left = projectDuration ? (task.es / projectDuration) * 100 : 0;
+        const width = projectDuration ? (task.durationMinutes / projectDuration) * 100 : 0;
+        const isCritical = Math.abs(task.slack) < 0.0001;
+
+        const row = document.createElement("div");
+        row.className = "gantt-row";
+
+        row.innerHTML = `
+          <div class="gantt-label">${escapeHtml(task.id)}. ${escapeHtml(task.name)}</div>
+          <div class="gantt-line">
+            <div class="bar ${isCritical ? "critical" : "normal"}" style="left:${left}%;width:${Math.max(width, 3)}%;">
+              ${formatTime(task.durationMinutes)}
+            </div>
+          </div>
+        `;
+
+        gantt.appendChild(row);
+      }
+    }
+
+    function renderTable(tasks) {
+      document.getElementById("tableCard").style.display = "block";
+
+      const tbody = document.getElementById("resultRows");
+      tbody.innerHTML = "";
+
+      for (const task of tasks) {
+        const isCritical = Math.abs(task.slack) < 0.0001;
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td>${escapeHtml(task.id)}</td>
+          <td>${escapeHtml(task.name)}</td>
+          <td>${escapeHtml(String(task.duration))} ${unitLabel(task.unit)}</td>
+          <td>${task.predecessors.length ? escapeHtml(task.predecessors.join(", ")) : "-"}</td>
+          <td>${formatTime(task.es)}</td>
+          <td>${formatTime(task.ef)}</td>
+          <td>${formatTime(task.ls)}</td>
+          <td>${formatTime(task.lf)}</td>
+          <td>${formatTime(task.slack)}</td>
+          <td class="${isCritical ? "critical-text" : "normal-text"}">${isCritical ? "Kritik" : "Esnek"}</td>
+        `;
+
+        tbody.appendChild(tr);
+      }
+    }
+
+    function renderCriticalTasks(criticalTasks) {
+      document.getElementById("criticalCard").style.display = "block";
+
+      const ol = document.getElementById("criticalTasks");
+      ol.innerHTML = "";
+
+      for (const task of criticalTasks) {
+        const li = document.createElement("li");
+        li.textContent = `${task.id}. ${task.name} — ${formatTime(task.durationMinutes)}`;
+        ol.appendChild(li);
+      }
+    }
+
+    function renderNetwork(tasks, criticalTasks) {
+      document.getElementById("networkCard").style.display = "block";
+
+      const svg = document.getElementById("networkDiagram");
+      svg.innerHTML = `
+        <defs>
+          <marker id="arrowNormal" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#9ca3af"></path>
+          </marker>
+          <marker id="arrowCritical" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#dc2626"></path>
+          </marker>
+        </defs>
+      `;
+
+      const criticalIds = new Set(criticalTasks.map(task => task.id));
+      const taskMap = new Map(tasks.map(task => [task.id, task]));
+      const projectDuration = Math.max(...tasks.map(task => task.ef));
+      const width = 1150;
+      const leftPadding = 95;
+      const rightPadding = 95;
+      const usableWidth = width - leftPadding - rightPadding;
+      const topPadding = 75;
+      const laneGap = 80;
+      const maxLane = 5;
+      const positions = new Map();
+
+      tasks.forEach((task, index) => {
+        const x = leftPadding + (projectDuration ? (task.es / projectDuration) * usableWidth : 0);
+        const lane = index % maxLane;
+        const y = topPadding + lane * laneGap;
+        positions.set(task.id, { x, y });
+      });
+
+      function createSvgElement(name, attrs = {}) {
+        const element = document.createElementNS("http://www.w3.org/2000/svg", name);
+        Object.entries(attrs).forEach(([key, value]) => element.setAttribute(key, value));
+        return element;
+      }
+
+      for (const task of tasks) {
+        for (const predId of task.predecessors) {
+          const from = positions.get(predId);
+          const to = positions.get(task.id);
+          if (!from || !to) continue;
+
+          const predTask = taskMap.get(predId);
+          const isCriticalEdge =
+            criticalIds.has(predId) &&
+            criticalIds.has(task.id) &&
+            Math.abs(predTask.ef - task.es) < 0.0001;
+
+          const line = createSvgElement("line", {
+            x1: from.x + 54,
+            y1: from.y,
+            x2: to.x - 54,
+            y2: to.y,
+            class: isCriticalEdge ? "network-edge critical" : "network-edge"
+          });
+
+          svg.appendChild(line);
+        }
+      }
+
+      for (const task of tasks) {
+        const pos = positions.get(task.id);
+        const isCritical = criticalIds.has(task.id);
+
+        const group = createSvgElement("g");
+
+        const rect = createSvgElement("rect", {
+          x: pos.x - 58,
+          y: pos.y - 27,
+          width: 116,
+          height: 54,
+          rx: 11,
+          class: isCritical ? "network-node critical" : "network-node"
+        });
+
+        const title = createSvgElement("text", {
+          x: pos.x,
+          y: pos.y - 7,
+          "text-anchor": "middle",
+          class: "network-title"
+        });
+        title.textContent = `${task.id}. ${shortenText(task.name, 14)}`;
+
+        const detail = createSvgElement("text", {
+          x: pos.x,
+          y: pos.y + 12,
+          "text-anchor": "middle",
+          class: "network-detail"
+        });
+        detail.textContent = `ES:${formatTime(task.es)} | B:${formatTime(task.slack)}`;
+
+        group.appendChild(rect);
+        group.appendChild(title);
+        group.appendChild(detail);
+        svg.appendChild(group);
+      }
+    }
+
+    function renderMermaid(tasks, criticalTasks) {
+      document.getElementById("mermaidCard").style.display = "block";
+
+      const criticalIds = new Set(criticalTasks.map(task => task.id));
+      const lines = [
+        "```mermaid",
+        "gantt",
+        "    title Proje Gantt Şeması",
+        "    dateFormat  YYYY-MM-DD",
+        "    axisFormat  %d.%m",
+        "    section Görevler"
+      ];
+
+      const baseDate = new Date("2026-01-01T00:00:00");
+
+      for (const task of tasks) {
+        const safeName = task.name.replace(/:/g, "-");
+        const marker = criticalIds.has(task.id) ? "crit, " : "";
+        const startDate = new Date(baseDate.getTime() + task.es * 60 * 1000);
+        const dateText = toDateString(startDate);
+        const durationDays = Math.max(1, Math.ceil(task.durationMinutes / 1440));
+
+        lines.push(`    ${safeName} :${marker}t${task.id}, ${dateText}, ${durationDays}d`);
+      }
+
+      lines.push("```");
+      document.getElementById("mermaidCode").textContent = lines.join("\n");
+    }
+
+    function loadTextFromUrlHash() {
+      const hash = window.location.hash || "";
+
+      if (!hash.startsWith("#text=")) {
+        loadSample();
+        return;
+      }
+
+      try {
+        const encodedText = hash.replace("#text=", "");
+        const decodedText = decodeURIComponent(encodedText);
+        const textArea = document.getElementById("bulkTaskText");
+
+        textArea.value = decodedText;
+
+        const parsed = parseBulkText();
+
+        if (parsed) {
+          calculateProject();
+          document.getElementById("summaryCard").scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      } catch (error) {
+        showMessage("F8 ile gelen metin okunamadı: " + error.message, true);
+      }
+    }
+
+    function compareTaskIds(a, b) {
+      const numA = Number(a);
+      const numB = Number(b);
+
+      if (Number.isFinite(numA) && Number.isFinite(numB)) {
+        return numA - numB;
+      }
+
+      return String(a).localeCompare(String(b), "tr");
+    }
+
+    function unitLabel(unit) {
+      if (unit === "minute") return "dk";
+      if (unit === "hour") return "saat";
+      return "gün";
+    }
+
+    function toDateString(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+
+      return `${year}-${month}-${day}`;
+    }
+
+    function shortenText(text, maxLength) {
+      return text.length > maxLength ? text.slice(0, maxLength - 1) + "…" : text;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    loadTextFromUrlHash();
+  </script>
+</body>
+</html>

@@ -7,14 +7,17 @@ import time
 import threading
 import requests
 import queue
+import webbrowser
+from pathlib import Path
+from urllib.parse import quote
 
 
 # --- AYARLAR ---
 OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_ADI = "gemini-3-flash-preview:latest"  # Ana model (F8)
+MODEL_ADI = "gemma3:4b"  # Ana model (F8)
 TEXT_MODEL_CANDIDATES = [
     MODEL_ADI,
-    "gemini-3-flash-preview:cloud",
+    "gemma3:4b",
 ]
 
 KISAYOL_METIN = keyboard.Key.f8  # Metin secimi icin kisayol
@@ -35,6 +38,8 @@ ISLEMLER = {
     "💼 Daha Resmi Yap": "Bu metni kurumsal bir e-posta diline çevir, çok resmi olsun.",
     "🐍 Python Koduna Çevir": "Bu metindeki isteği yerine getiren bir Python kodu yaz. Sadece kodu ver.",
     "📧 Cevap Yaz (Mail)": "Bu gelen bir e-posta, buna kibar ve profesyonel bir cevap metni taslağı yaz.",
+    "🧩 Görev Metnini Gantt Formatına Çevir": "Seçili metindeki proje görevlerini analiz et ve sadece aşağıdaki formata dönüştür. Her görev ayrı satırda olsun. Format: 1. Görev adı | Süre: X gün | Öncül: yok veya 1,2. Görev uydurma, sadece metinde geçen görevleri kullan. Süre belirtilmemişse 'Süre: belirtilmemiş' yaz. Öncül yoksa 'Öncül: yok' yaz. Açıklama, başlık, markdown veya ekstra yorum ekleme.",
+    "📊 Gantt ve Kritik Yol Arayüzünü Aç": "__GANTT_ARAYUZU__",
     "🎮 PS5 Oyun Skor + Acımasız Yorum": (
         "Seçili metni bir PS5 oyunu adı olarak ele al. Aşağıdaki formatta Türkçe cevap ver:\n"
         "1) Oyun: <ad>\n"
@@ -223,8 +228,38 @@ def sonuc_penceresi_goster(baslik, icerik):
     pencere.lift()
 
 
+
+def gantt_arayuzunu_ac(secili_metin):
+    """Seçili görev metnini Gantt HTML arayüzüne gönderip tarayıcıda açar."""
+    try:
+        html_yolu = Path(__file__).resolve().parent / "gantt_kritik_yol.html"
+
+        if not html_yolu.exists():
+            err_msg = (
+                "gantt_kritik_yol.html dosyası bulunamadı.\n"
+                "Bu dosyanın main.pyw ile aynı klasörde olduğundan emin olun."
+            )
+            gui_queue.put((messagebox.showerror, ("Dosya Bulunamadı", err_msg)))
+            return
+
+        encoded_text = quote(secili_metin, safe="")
+        url = html_yolu.as_uri() + f"?v={time.time_ns()}#text=" + encoded_text
+
+        webbrowser.open_new_tab(url)
+        print("✅ Gantt ve kritik yol arayüzü seçili metinle açıldı.")
+
+    except Exception as e:
+        err_msg = f"Gantt arayüzü açılırken hata oluştu: {e}"
+        print(f"❌ {err_msg}")
+        gui_queue.put((messagebox.showerror, ("Hata", err_msg)))
+
 def islemi_yap(komut_adi, secili_metin):
     prompt_emri = ISLEMLER[komut_adi]
+
+    if prompt_emri == "__GANTT_ARAYUZU__":
+        gantt_arayuzunu_ac(secili_metin)
+        return
+
     full_prompt = f"{prompt_emri}:\n\n'{secili_metin}'"
 
     print(f"🤖 İşlem: {komut_adi}")

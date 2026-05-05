@@ -1,121 +1,292 @@
-# AI Asistan Kampusu
+# 🤖 AI Asistan — Masaüstü Yapay Zekâ Yardımcısı
 
-<div align="center">
+Bilgisayarda herhangi bir uygulamada seçtiğin metni **`F8`** tuşuyla yerel yapay zekâya gönderir; gramer düzeltme, çeviri, özetleme, Gantt şeması oluşturma ve daha fazlasını tek tuşla yapar.
 
-### Sekilli Sukullu Ogrenci Baslangic Rehberi
+---
 
-`Local AI + Cloud AI = Daha hizli ogrenme`
+## Projenin Amacı
 
-[![Ollama](https://img.shields.io/badge/Ollama-Local%20LLM-111827?style=for-the-badge)](https://docs.ollama.com/quickstart)
-[![Gemini 3 Preview](https://img.shields.io/badge/Gemini%203-Preview-0f766e?style=for-the-badge)](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/start/get-started-with-gemini-3)
-[![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Vertex%20AI-1a73e8?style=for-the-badge)](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/start/quickstart)
+Günlük bilgisayar kullanımında sürekli tekrarlanan metin işlemleri vardır: bir metni düzeltmek, İngilizceye çevirmek, gelen bir e-postaya cevap taslağı hazırlamak, proje görevlerini Gantt şemasına dönüştürmek…
 
-</div>
+Bu uygulamayla söz konusu işlemlerin hepsi **iki adımda** tamamlanır:
 
-```text
- ____  ____     _   _ _____ _   _ _  __      _    ____ ___ _
-|  _ \|  _ \   | | | |  ___| | | | |/ /     / \  / ___|_ _| |
-| | | | |_) |  | | | | |_  | | | | ' /     / _ \ \___ \| || |
-| |_| |  _ <   | |_| |  _| | |_| | . \    / ___ \ ___) | || |___
-|____/|_| \_\   \___/|_|    \___/|_|\_\  /_/   \_\____/___|_____|
-K   K  L      U   U  BBBB   EEEEE         H   H   OOO    SSSS          GGG   EEEEE  L      DDDD   IIIII  N   N           !
-K  K   L      U   U  B   B  E             H   H  O   O  S             G      E      L      D   D    I    NN  N           !
-KKK    L      U   U  BBBB   EEE           HHHHH  O   O   SSS          G  GG  EEE    L      D   D    I    N N N           !
-K  K   L      U   U  B   B  E             H   H  O   O      S         G   G  E      L      D   D    I    N  NN
-K   K  LLLLL   UUU   BBBB   EEEEE         H   H   OOO   SSSS           GGG   EEEEE  LLLLL  DDDD   IIIII  N   N           !
+1. Metni seç
+2. `F8` tuşuna bas, menüden işlemi seç
+
+Uygulama arka planda sessizce çalışır. Tarayıcı açmana, kopyala-yapıştır yapman gerekmez; sonuç doğrudan bulunduğun alana yapıştırılır.
+
+---
+
+## Özellikler
+
+| Menü Seçeneği | Ne Yapar? |
+|---|---|
+| 📝 Gramer Düzelt | Türkçe yazım hatalarını düzeltir |
+| 🇬🇧 İngilizceye Çevir | Seçili metni İngilizceye çevirir |
+| 🇹🇷 Türkçeye Çevir | Seçili metni Türkçeye çevirir |
+| 📑 Özetle (Madde Madde) | Ana noktaları maddeler hâlinde çıkarır |
+| 💼 Daha Resmi Yap | Kurumsal e-posta diline dönüştürür |
+| 🐍 Python Koduna Çevir | Metindeki isteği Python koduna çevirir |
+| 📧 Cevap Yaz (Mail) | Gelen e-postaya profesyonel cevap taslağı üretir |
+| 💬 Mesaja 3 Cevap Öner | Aynı mesaja samimi / resmi / kısa-net 3 cevap üretir |
+| 🧩 Görev Metnini Gantt Formatına Çevir | Serbest yazılmış görev metnini yapılandırılmış Gantt formatına çevirir |
+| 📊 Gantt ve Kritik Yol Arayüzünü Aç | Görev listesini alır, tarayıcıda interaktif Gantt + Kritik Yol arayüzünü açar |
+| 🎮 PS5 Oyun Skor + Acımasız Yorum | Oyun adına göre topluluk skorları ve sert yorum üretir |
+
+---
+
+## Çalışma Mantığı
+
+```mermaid
+flowchart TD
+    A[Program başlatılır\nmain.pyw] --> B[Arka planda çalışır\nF8 tuşunu dinler]
+    B --> C[Kullanıcı bir metni seçer]
+    C --> D[F8 tuşuna basar]
+    D --> E[Seçili metin otomatik kopyalanır\npyautogui + pyperclip]
+    E --> F[İşlem menüsü açılır\ntkinter]
+    F --> G{Kullanıcı hangi\nişlemi seçti?}
+
+    G --> H[Metin işlemleri\nGramer / Çeviri / Özetle\nResmi Yap / Python / Mail\n3 Cevap / PS5]
+    G --> I[Görev Metnini\nGantt Formatına Çevir]
+    G --> J[Gantt ve Kritik Yol\nArayüzünü Aç]
+
+    H --> K[Prompt hazırlanır ve\nOllama API ye gönderilir\ngemma3:4b modeli]
+    K --> L[Model cevap üretir]
+    L --> M[Cevap panoya kopyalanır\nve aktif alana yapıştırılır]
+
+    I --> N[Metin analiz edilir\nGörevler Gantt formatına çevrilir]
+    N --> K
+
+    J --> O[Seçili metin URL parametresi\nolarak encode edilir]
+    O --> P[gantt_kritik_yol.html\ntarayıcıda açılır]
+    P --> Q[Görevler otomatik tabloya aktarılır\nKritik Yol hesaplanır\nGantt şeması çizilir]
 ```
 
-> [!IMPORTANT]
-> Gemini 3 preview "indirilen bir program" degil, Google Cloud Vertex AI uzerinden API ile kullanilan bir model ailesidir.
+---
 
-## 0) Ogrenci Icin Tek Adim
+## Gantt ve Kritik Yol Özelliği — Detaylı Akış
 
-1. Ollama'yi bir kez kur: https://docs.ollama.com/windows models kısmına gir https://ollama.com/library  ve gemini 3 preview cloud modelinini çalıştır yetki giriş gerekecek. ollama artık lokalinde bir LLM olarak sana hizmet vermeye hazır .
+Bu özellik iki aşamalı çalışır ve proje yönetimine gerçek bir katma değer sunar.
 
-2. Bu klasorde sadece `BASLAT.bat` calistir.
-3. Hepsi bu kadar.
+### Aşama 1 — Metni Gantt Formatına Çevir
 
-> [!IMPORTANT]
-> Ogrenci tarafinda ekstra komut gerekmez. `BASLAT.bat` gerekli durumda `kurulum.bat` dosyasini otomatik cagirir ve ortami kendi kurar.
+Serbest yazılmış proje açıklamasını önce yapılandırılmış formata dönüştürmek gerekir.
 
-## 1) BASLAT Calisinca Ne Oluyor?
+**Örnek girdi (seçilen metin):**
 
-1. `BASLAT.bat` önce `.venv` var mi kontrol eder.
-2. Yoksa `kurulum.bat` otomatik calisir; Python 3 kontrolu, `.venv` olusturma, `pip` guncelleme ve `requirements.txt` paket kurulumu yapilir.
-3. Sonra `main.pyw` arka planda acilir.
-4. Uygulama varsayilan olarak `gemma3:1b` modeliyle Ollama'ya istek atar.
-
-Ollama API varsayilan adresi: `http://localhost:11434`
-
-## 2) Google Cloud Gemini 3 Preview (Vertex AI)
-
-### Once gerekli olanlar
-- Google Cloud projesi
-- Billing acik olmali
-- Vertex AI API aktif olmali
-- `gcloud` CLI kurulu olmali
-
-### gcloud giris ve kimlik
-
-```powershell
-gcloud init
-gcloud auth application-default login
+```
+Proje için önce konu belirleme yapılacak, bu iş yaklaşık 1 gün sürer. Konu belli
+olduktan sonra veri seti araştırması yapılmalı ve bu da 2 gün sürer. Veri seti
+bulunduktan sonra veri temizleme aşamasına geçilecek, bu işlem 1 gün sürecek...
 ```
 
-### Proje ve API ayari
+Kullanıcı metni seçip `F8` → **Görev Metnini Gantt Formatına Çevir** seçeneğini seçer.
 
-```powershell
-gcloud config set project YOUR_PROJECT_ID
-gcloud services enable aiplatform.googleapis.com
+**Üretilen çıktı (panoya yapıştırılır):**
+
+```
+1. Konu belirleme | Süre: 1 gün | Öncül: yok
+2. Veri seti araştırması | Süre: 2 gün | Öncül: yok
+3. Veri temizleme | Süre: 1 gün | Öncül: yok
+...
 ```
 
-### Python SDK kurulumu
+### Aşama 2 — Gantt Arayüzünü Aç
 
-```powershell
-pip install --upgrade google-genai
+Bu kez yapılandırılmış metni seçip `F8` → **Gantt ve Kritik Yol Arayüzünü Aç** seçeneğini seçer.
+
+Tarayıcıda `gantt_kritik_yol.html` dosyası açılır ve metin otomatik olarak tabloya aktarılır.
+
+```mermaid
+flowchart LR
+    A[Yapılandırılmış\nGörev Metni] --> B[F8 Menüsü]
+    B --> C[Gantt ve Kritik\nYol Arayüzünü Aç]
+    C --> D[HTML arayüzü\ntarayıcıda açılır]
+    D --> E[Görev Tablosu\notomatik dolar]
+    E --> F[Hesapla butonuna basılır]
+    F --> G[Gantt Görünümü\nKırmızı = Kritik\nYeşil = Esnek]
+    F --> H[Kritik Yol Tablosu\nES / EF / LS / LF / Bolluk]
+    F --> I[Şebeke Diyagramı\nDüğümler ve oklar]
+    F --> J[Mermaid Gantt Kodu\nMarkdown için hazır]
 ```
 
-### Ortam degiskenleri (PowerShell)
+---
 
-```powershell
-$env:GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"
-$env:GOOGLE_CLOUD_LOCATION="global"
-$env:GOOGLE_GENAI_USE_VERTEXAI="True"
+## Ekran Görüntüleri
+
+### F8 Menüsü
+
+Herhangi bir uygulamada metin seçilip `F8` tuşuna basıldığında işlem menüsü açılır. Kullanmak istenen özellik buradan seçilir.
+
+> **Görsel 1:** Yapılandırılmış görev listesi seçilmiş, F8 menüsü açık — "Gantt ve Kritik Yol Arayüzünü Aç" seçeneği görünüyor.
+
+> **Görsel 2:** Serbest yazılmış proje metni seçilmiş, F8 menüsü açık — "Görev Metnini Gantt Formatına Çevir" seçeneği görünüyor.
+
+---
+
+### Gantt Arayüzü — Görev Girişi
+
+Metin otomatik olarak tabloya aktarılır. Görevler, süreleri ve öncül ilişkileri düzenlenebilir durumdadır.
+
+> **Görsel 3:** Görev girişi ekranı — Metin tabloya aktarılmış, "Hesapla" butonu bekleniyor.
+
+---
+
+### Gantt Görünümü ve Proje Özeti
+
+Hesaplama tamamlandığında Gantt şeması çizilir. Kırmızı görevler kritik yoldadır (gecikmesi projeyi geciktirir), yeşil görevlerde zaman esnekliği vardır.
+
+> **Görsel 4:** Proje Özeti (toplam süre, kritik yol, kritik görev sayısı) ve Gantt Görünümü.
+
+---
+
+### Kritik Yol Tablosu
+
+Her görev için En Erken Başlama, En Erken Bitiş, En Geç Başlama, En Geç Bitiş ve Bolluk değerleri hesaplanır.
+
+> **Görsel 5:** Kritik Yol Tablosu — Kırmızı satırlar kritik, yeşil satırlar esnek görevlerdir.
+
+---
+
+### Şebeke Diyagramı
+
+Görevler arasındaki bağımlılıklar görsel olarak şebeke diyagramında gösterilir. Kırmızı düğümler ve oklar kritik yolu işaret eder.
+
+> **Görsel 6:** Kritik Yol Şebeke Diyagramı.
+
+---
+
+### Mermaid Gantt Kodu
+
+Üretilen Gantt şeması, README veya Mermaid destekleyen herhangi bir editöre yapıştırılabilir formatta da sunulur.
+
+> **Görsel 7:** Otomatik üretilmiş Mermaid Gantt kodu.
+
+---
+
+## Gereksinimler
+
+### Sistem
+
+- Python 3.x
+- [Ollama](https://ollama.com) (yerel yapay zekâ motoru)
+- `gemma3:4b` modeli
+- Windows işletim sistemi
+- Git (isteğe bağlı)
+
+### Python Paketleri
+
+```
+requests
+pyperclip
+pynput
+pyautogui
 ```
 
-### Ilk Gemini 3 Preview istegi
+| Paket | Görevi |
+|---|---|
+| `requests` | Ollama API'ye HTTP isteği gönderir |
+| `pyperclip` | Panodan okur, panoya yazar |
+| `pynput` | F8 tuşunu arka planda dinler |
+| `pyautogui` | Seçili metni otomatik kopyalar, sonucu yapıştırır |
 
-```python
-from google import genai
+---
 
-client = genai.Client()
+## Kurulum
 
-response = client.models.generate_content(
-    model="gemini-3-flash-preview",
-    contents="Merhaba! Bana 3 maddede Python'da for dongusunu anlat.",
-)
+### 1. Ollama Kur ve Modeli İndir
 
-print(response.text)
+[ollama.com](https://ollama.com) adresinden Ollama'yı kur, ardından terminalde:
+
+```bash
+ollama pull gemma3:4b
 ```
 
+Kurulumu kontrol et:
 
-## 3) Mini Ogrenci Challenge (Opsiyonel)
-1. Terminalde su komutu yaz: `ollama run gemini-3-flash-preview`
-2. Sonra Ollama'da gecerli bir modelle sor: `ollama run gemma3:1b`
-3. Ayni soruyu Gemini 3 preview ile sor.
-4. Cevaplari hiz, detay ve dogruluk acisindan karsilastir.
+```bash
+ollama list
+# gemma3:4b görünmeli
+```
 
-## 4) Hata Cozme Kisa Notlari
-- `403` alirsan: Billing, Vertex AI API ve IAM rol (`roles/aiplatform.user`) kontrol et.
-- `401` alirsan: `gcloud auth application-default login` komutunu yeniden calistir.
-- `ollama model not found` alirsan once su komutu calistir: `ollama run gemma3:1b`
-- `Model not found` alirsan: model ID'yi kontrol et (`gemini-3-flash-preview`, `gemini-3-pro-preview`, `gemini-3.1-pro-preview`).
+### 2. Projeyi Çalıştır
 
-## Kaynaklar (Resmi)
-- Ollama Quickstart: https://docs.ollama.com/quickstart
-- Ollama Windows: https://docs.ollama.com/windows
-- Ollama Linux: https://docs.ollama.com/linux
-- Vertex AI Quickstart: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/start/quickstart
-- Gemini 3 Baslangic: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/start/get-started-with-gemini-3
-- Gemini 3 Pro Model: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/3-pro
-- Gemini 3 Flash Model: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/3-flash
+**Windows üzerinde (önerilen):**
+
+```bash
+BASLAT.bat
+```
+
+Bu dosya ilk çalıştırmada sanal ortamı ve gerekli paketleri kurar, sonraki çalıştırmalarda uygulamayı doğrudan başlatır.
+
+**Alternatif:**
+
+```bash
+pip install -r requirements.txt
+python main.pyw
+```
+
+---
+
+## Kullanım — Adım Adım
+
+```mermaid
+flowchart LR
+    A[Uygulamayı Başlat\nBAŞLAT.bat] --> B[Herhangi bir\nuygulamada metni seç]
+    B --> C[F8 tuşuna bas]
+    C --> D[Menüden işlem seç]
+    D --> E[Sonuç otomatik\nyapıştırılır]
+```
+
+1. `BASLAT.bat` dosyasını çalıştır — program arka planda başlar.
+2. WhatsApp Web, Notepad, e-posta, tarayıcı — fark etmez, istediğin uygulamada bir metni seç.
+3. `F8` tuşuna bas.
+4. Açılan menüden istediğin işlemi seç.
+5. İşlem tamamlandığında sonuç bulunduğun alana otomatik yapıştırılır.
+
+---
+
+## Proje Yapısı
+
+```
+.
+├── main.pyw                  # Ana uygulama — F8 dinleme, menü, Ollama entegrasyonu
+├── gantt_kritik_yol.html     # Gantt + Kritik Yol arayüzü (tarayıcıda açılır)
+├── requirements.txt          # Python bağımlılıkları
+├── BASLAT.bat                # Windows hızlı başlatma + kurulum
+├── kurulum.bat               # Yalnızca kurulum
+├── .gitignore
+└── README.md
+```
+
+---
+
+## Kullanılan Teknolojiler
+
+- **Python** — Ana uygulama dili
+- **Ollama** — Yerel LLM motoru (`gemma3:4b` modeli)
+- **tkinter** — İşlem menüsü (GUI)
+- **pynput / pyautogui / pyperclip** — Klavye ve pano otomasyonu
+- **HTML / JavaScript** — Gantt ve Kritik Yol arayüzü (tarayıcı tabanlı)
+
+---
+
+## Sorun Giderme
+
+**F8 tuşu çalışmıyor:**
+Programın çalıştığından emin ol. Bazı bilgisayarlarda `Fn + F8` kombinasyonu gerekebilir. Başka bir uygulama F8'i kullanıyor olabilir.
+
+**Seçili metin algılanmıyor:**
+Metni gerçekten seçtiğinden ve seçim aktifken F8'e bastığından emin ol.
+
+**Ollama bağlantı hatası:**
+`ollama list` komutunu çalıştır. Model listede görünmüyorsa `ollama pull gemma3:4b` ile yeniden indir. Ollama bir internet bağlantısı gerektirmez; model indirildikten sonra tamamen yerel çalışır.
+
+**Gantt arayüzü açılmıyor:**
+`gantt_kritik_yol.html` dosyasının `main.pyw` ile aynı klasörde olduğundan emin ol.
+
+---
+
+## Gizlilik
+
+Tüm işlemler yerel bilgisayarında, Ollama üzerinden çalışır. Seçtiğin metinler hiçbir bulut servisine gönderilmez.
